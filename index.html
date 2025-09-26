@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translation System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center py-12 px-4">
+        <div class="max-w-md w-full space-y-8">
+            <div class="text-center">
+                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Translation System</h2>
+                <p class="mt-2 text-sm text-gray-600">Multi-Modal Document Translation</p>
+            </div>
+            
+            <div class="bg-white p-8 rounded-lg shadow-md">
+                <div id="authTabs" class="flex mb-6 border-b">
+                    <button id="loginTab" class="flex-1 py-2 px-4 text-center border-b-2 border-blue-500 text-blue-600 font-medium">Login</button>
+                    <button id="registerTab" class="flex-1 py-2 px-4 text-center border-b-2 border-transparent text-gray-500 font-medium">Register</button>
+                </div>
+                
+                <form id="authForm" class="space-y-4">
+                    <div>
+                        <input id="email" type="email" required placeholder="Email address" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <input id="password" type="password" required placeholder="Password"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div id="errorMessage" class="text-red-600 text-sm hidden"></div>
+                    <button type="submit" id="authSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium">
+                        Login
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+        <!-- Header -->
+        <nav class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    <h1 class="text-xl font-semibold">Translation System</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="userEmail" class="text-gray-700"></span>
+                        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <div class="max-w-7xl mx-auto py-6 px-4">
+            <!-- Tabs -->
+            <div class="mb-6">
+                <nav class="flex space-x-8 border-b">
+                    <button id="uploadTab" class="py-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
+                        Upload & Translate
+                    </button>
+                    <button id="jobsTab" class="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+                        Translation Jobs
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Upload Section -->
+            <div id="uploadSection" class="space-y-6">
+                <!-- File Upload -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Upload Document</h3>
+                    
+                    <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 14l9-5 9 5m0 0l9-5 9 5M7 14v18a2 2 0 002 2h16m-5-6l2 2 4-4"/>
+                        </svg>
+                        <div class="text-sm text-gray-600">
+                            <span class="font-medium text-blue-600">Click to upload</span> or drag and drop
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">PDF, DOCX, TXT, RTF, HTML (up to 10MB)</p>
+                        <input id="fileInput" type="file" class="hidden" accept=".pdf,.docx,.txt,.rtf,.html">
+                    </div>
+                    
+                    <div id="uploadStatus" class="mt-4 text-center hidden"></div>
+                </div>
+
+                <!-- Translation Settings -->
+                <div id="translationSection" class="bg-white shadow rounded-lg p-6 hidden">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Translation Settings</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Source Language</label>
+                            <select id="sourceLang" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="ru">Russian</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="zh">Chinese</option>
+                                <option value="ar">Arabic</option>
+                                <option value="hi">Hindi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Target Language</label>
+                            <select id="targetLang" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="es">Spanish</option>
+                                <option value="en">English</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="ru">Russian</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="zh">Chinese</option>
+                                <option value="ar">Arabic</option>
+                                <option value="hi">Hindi</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-600">
+                            File: <span id="fileName" class="font-medium"></span>
+                        </div>
+                        <button id="translateBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium">
+                            Start Translation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div id="messageBox" class="hidden p-4 rounded-md"></div>
+            </div>
+
+            <!-- Jobs Section -->
+            <div id="jobsSection" class="hidden">
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-lg font-medium text-gray-900">Translation Jobs</h3>
+                        <button id="refreshJobs" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                            Refresh
+                        </button>
+                    </div>
+                    
+                    <div id="jobsList" class="p-6">
+                        <div class="text-center text-gray-500">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let authToken = localStorage.getItem('authToken');
+        let uploadedDocument = null;
+        let isRegisterMode = false;
+
+        // DOM elements
+        const loginScreen = document.getElementById('loginScreen');
+        const dashboard = document.getElementById('dashboard');
+        const authForm = document.getElementById('authForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const userEmail = document.getElementById('userEmail');
+
+        // Initialize app
+        if (authToken) {
+            checkAuthToken();
+        }
+
+        // Auth tab switching
+        document.getElementById('loginTab').addEventListener('click', () => switchAuthMode(false));
+        document.getElementById('registerTab').addEventListener('click', () => switchAuthMode(true));
+
+        function switchAuthMode(register) {
+            isRegisterMode = register;
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const submitBtn = document.getElementById('authSubmit');
+
+            if (register) {
+                loginTab.className = 'flex-1 py-2 px-4 text-center border-b-2 border-transparent text-gray-500 font-medium';
+                registerTab.className = 'flex-1 py-2 px-4 text-center border-b-2 border-blue-500 text-blue-600 font-medium';
+                submitBtn.textContent = 'Register';
+            } else {
+                loginTab.className = 'flex-1 py-2 px-4 text-center border-b-2 border-blue-500 text-blue-600 font-medium';
+                registerTab.className = 'flex-1 py-2 px-4 text-center border-b-2 border-transparent text-gray-500 font-medium';
+                submitBtn.textContent = 'Login';
+            }
+        }
+
+        // Auth form submission
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                if (isRegisterMode) {
+                    await register(email, password);
+                }
+                await login(email, password);
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        async function register(email, password) {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Registration failed');
+            }
+        }
+
+        async function login(email, password) {
+            const formData = new FormData();
+            formData.append('username', email);
+            formData.append('password', password);
+
+            const response = await fetch('/api/auth/token', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Invalid credentials');
+            }
+
+            const data = await response.json();
+            authToken = data.access_token;
+            localStorage.setItem('authToken', authToken);
+
+            await getCurrentUser();
+            showDashboard();
+        }
+
+        async function checkAuthToken() {
+            try {
+                await getCurrentUser();
+                showDashboard();
+            } catch {
+                localStorage.removeItem('authToken');
+                authToken = null;
+            }
+        }
+
+        async function getCurrentUser() {
+            const response = await fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) {
+                throw new Error('Invalid token');
+            }
+
+            currentUser = await response.json();
+            userEmail.textContent = currentUser.email;
+        }
+
+        function showDashboard() {
+            loginScreen.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+            loadJobs();
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            setTimeout(() => errorMessage.classList.add('hidden'), 5000);
+        }
+
+        function showMessage(message, isError = false) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.className = `p-4 rounded-md ${isError ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => messageBox.classList.add('hidden'), 5000);
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            loginScreen.classList.remove('hidden');
+            dashboard.classList.add('hidden');
+        });
+
+        // Tab switching
+        document.getElementById('uploadTab').addEventListener('click', () => switchTab('upload'));
+        document.getElementById('jobsTab').addEventListener('click', () => switchTab('jobs'));
+
+        function switchTab(tab) {
+            const uploadTab = document.getElementById('uploadTab');
+            const jobsTab = document.getElementById('jobsTab');
+            const uploadSection = document.getElementById('uploadSection');
+            const jobsSection = document.getElementById('jobsSection');
+
+            if (tab === 'upload') {
+                uploadTab.className = 'py-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm';
+                jobsTab.className = 'py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm';
+                uploadSection.classList.remove('hidden');
+                jobsSection.classList.add('hidden');
+            } else {
+                jobsTab.className = 'py-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm';
+                uploadTab.className = 'py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm';
+                jobsSection.classList.remove('hidden');
+                uploadSection.classList.add('hidden');
+                loadJobs();
+            }
+        }
+
+        // File upload
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'bg-blue-50');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            handleFileUpload(e.dataTransfer.files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFileUpload(e.target.files[0]);
+        });
+
+        async function handleFileUpload(file) {
+            if (!file) return;
+
+            const uploadStatus = document.getElementById('uploadStatus');
+            uploadStatus.textContent = 'Uploading...';
+            uploadStatus.className = 'mt-4 text-center text-blue-600';
+            uploadStatus.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/files/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Upload failed');
+
+                uploadedDocument = await response.json();
+                document.getElementById('fileName').textContent = uploadedDocument.filename;
+                document.getElementById('translationSection').classList.remove('hidden');
+                
+                uploadStatus.textContent = 'File uploaded successfully!';
+                uploadStatus.className = 'mt-4 text-center text-green-600';
+            } catch (error) {
+                uploadStatus.textContent = `Upload error: ${error.message}`;
+                uploadStatus.className = 'mt-4 text-center text-red-600';
+            }
+        }
+
+        // Translation
+        document.getElementById('translateBtn').addEventListener('click', async () => {
+            if (!uploadedDocument) return;
+
+            const sourceLang = document.getElementById('sourceLang').value;
+            const targetLang = document.getElementById('targetLang').value;
+
+            if (sourceLang === targetLang) {
+                showMessage('Source and target languages must be different', true);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/translate/', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        document_id: uploadedDocument.id,
+                        source_language: sourceLang,
+                        target_language: targetLang
+                    })
+                });
+
+                if (!response.ok) throw new Error('Translation request failed');
+
+                const job = await response.json();
+                showMessage(`Translation started! Job ID: ${job.job_id}. Check the Jobs tab for progress.`);
+                
+                // Switch to jobs tab
+                switchTab('jobs');
+            } catch (error) {
+                showMessage(`Translation error: ${error.message}`, true);
+            }
+        });
+
+        // Jobs management
+        let jobsInterval;
+
+        async function loadJobs() {
+            try {
+                const response = await fetch('/api/translate/jobs', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to load jobs');
+
+                const jobs = await response.json();
+                displayJobs(jobs);
+
+                // Auto-refresh jobs every 3 seconds
+                if (jobsInterval) clearInterval(jobsInterval);
+                jobsInterval = setInterval(loadJobs, 3000);
+            } catch (error) {
+                document.getElementById('jobsList').innerHTML = `<div class="text-center text-red-500">Error loading jobs: ${error.message}</div>`;
+            }
+        }
+
+        function displayJobs(jobs) {
+            const jobsList = document.getElementById('jobsList');
+            
+            if (jobs.length === 0) {
+                jobsList.innerHTML = '<div class="text-center text-gray-500">No translation jobs yet.</div>';
+                return;
+            }
+
+            const jobsHtml = jobs.map(job => {
+                const statusColor = {
+                    'completed': 'bg-green-100 text-green-800',
+                    'processing': 'bg-yellow-100 text-yellow-800',
+                    'failed': 'bg-red-100 text-red-800',
+                    'pending': 'bg-gray-100 text-gray-800'
+                }[job.status] || 'bg-gray-100 text-gray-800';
+
+                const downloadBtn = job.status === 'completed' && job.result_path ? 
+                    `<button onclick="downloadResult('${job.result_path}')" class="text-blue-600 hover:text-blue-900 text-sm">Download</button>` : 
+                    '-';
+
+                return `
+                    <tr class="border-b border-gray-200">
+                        <td class="py-3 px-2 text-sm font-medium text-gray-900">#${job.id}</td>
+                        <td class="py-3 px-2 text-sm text-gray-500">${job.source_language.toUpperCase()} → ${job.target_language.toUpperCase()}</td>
+                        <td class="py-3 px-2">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">
+                                ${job.status}
+                            </span>
+                        </td>
+                        <td class="py-3 px-2 text-sm text-gray-500">${new Date(job.created_at).toLocaleString()}</td>
+                        <td class="py-3 px-2 text-sm text-gray-500">${job.processing_time ? job.processing_time.toFixed(1) + 's' : '-'}</td>
+                        <td class="py-3 px-2">${downloadBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            jobsList.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="py-3 px-2">Job ID</th>
+                                <th class="py-3 px-2">Languages</th>
+                                <th class="py-3 px-2">Status</th>
+                                <th class="py-3 px-2">Created</th>
+                                <th class="py-3 px-2">Time</th>
+                                <th class="py-3 px-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${jobsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        window.downloadResult = async function(resultPath) {
+            try {
+                const filename = resultPath.split('/').pop();
+                const response = await fetch(`/storage/translations/${filename}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('Download failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                showMessage(`Download error: ${error.message}`, true);
+            }
+        };
+
+        document.getElementById('refreshJobs').addEventListener('click', loadJobs);
+
+        // Stop auto-refresh when leaving jobs tab
+        window.addEventListener('beforeunload', () => {
+            if (jobsInterval) clearInterval(jobsInterval);
+        });
+    </script>
+</body>
+</html>

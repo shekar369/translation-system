@@ -30,7 +30,7 @@ const menuItems = [
   {
     id: 'jobs',
     icon: Activity,
-    label: 'Translation Jobs',
+    label: 'Job-based System',
     gradient: 'from-orange-500 to-red-500'
   },
   {

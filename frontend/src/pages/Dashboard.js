@@ -7,6 +7,7 @@ import FileUpload from '../components/FileUpload';
 import TranslationJobs from '../components/TranslationJobs';
 import DocumentList from '../components/DocumentList';
 import Support from './Support';
+import JobsManager from './JobsManager';
 
 function Dashboard({ token, user, onLogout }) {
   const [activeTab, setActiveTab] = useState('upload');
@@ -27,7 +28,8 @@ function Dashboard({ token, user, onLogout }) {
     switch (activeTab) {
       case 'upload': return 'Upload & Translate';
       case 'documents': return 'My Documents';
-      case 'jobs': return 'Translation Jobs';
+      case 'jobs': return 'Job-based Translation System';
+      case 'jobs-legacy': return 'Translation Jobs (Legacy)';
       case 'support': return 'Documentation & Support';
       case 'analytics': return 'Analytics Dashboard';
       case 'settings': return 'Settings';
@@ -143,6 +145,9 @@ function Dashboard({ token, user, onLogout }) {
                 />
               )}
               {activeTab === 'jobs' && (
+                <JobsManager token={token} />
+              )}
+              {activeTab === 'jobs-legacy' && (
                 <TranslationJobs
                   token={token}
                   jobs={jobs}

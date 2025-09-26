@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.api import auth, files, translation
+from app.api import auth, files, translation, jobs
 from app.models.database import engine, Base
+from app.models.jobs import Base as JobsBase
 import os
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime
@@ -12,6 +13,7 @@ app = FastAPI()
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+JobsBase.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Multi-Modal Translation System",
@@ -48,6 +50,7 @@ app.json_encoder = lambda obj: obj.isoformat() if isinstance(obj, datetime) else
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(files.router, prefix="/api/files", tags=["File Management"])
 app.include_router(translation.router, prefix="/api/translate", tags=["Translation"])
+app.include_router(jobs.router, prefix="/api/v1", tags=["Jobs"])
 
 # Mount static files for storage
 app.mount("/storage", StaticFiles(directory="storage"), name="storage")

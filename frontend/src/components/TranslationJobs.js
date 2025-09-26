@@ -12,7 +12,9 @@ import {
   BarChart3,
   Trash2,
   RefreshCw,
-  Play
+  Play,
+  Eye,
+  RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -69,6 +71,9 @@ const languages = {
 function TranslationJobs({ token, jobs, setJobs, refreshTrigger }) {
   const [loading, setLoading] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState([]);
+  const [previewData, setPreviewData] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     fetchJobs();
@@ -173,6 +178,60 @@ function TranslationJobs({ token, jobs, setJobs, refreshTrigger }) {
     } catch (error) {
       console.error('Process error:', error);
       toast.error('Failed to process job');
+    }
+  };
+
+  const handleRerun = async (jobId) => {
+    if (!window.confirm('Re-run this translation job? This will overwrite the existing translation.')) return;
+
+    try {
+      const response = await fetch(`/api/translate/jobs/${jobId}/rerun`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.status === 'completed') {
+          toast.success('Translation re-run completed successfully!');
+          fetchJobs(); // Refresh the jobs list
+        } else if (result.status === 'failed') {
+          toast.error(`Translation failed: ${result.error}`);
+        } else {
+          toast.success('Job re-run started');
+        }
+      } else {
+        toast.error('Failed to re-run job');
+      }
+    } catch (error) {
+      console.error('Re-run error:', error);
+      toast.error('Failed to re-run job');
+    }
+  };
+
+  const handlePreview = async (jobId) => {
+    setPreviewLoading(true);
+    try {
+      const response = await fetch(`/api/translate/jobs/${jobId}/preview`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewData(data);
+        setShowPreview(true);
+      } else {
+        toast.error('Failed to load preview');
+      }
+    } catch (error) {
+      console.error('Preview error:', error);
+      toast.error('Failed to load preview');
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -349,6 +408,21 @@ function TranslationJobs({ token, jobs, setJobs, refreshTrigger }) {
 
                       {/* Actions */}
                       <div className="flex items-center space-x-2 ml-4">
+                        {/* Preview button - always show for completed jobs */}
+                        {job.status === 'completed' && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handlePreview(job.id)}
+                            disabled={previewLoading}
+                            className="flex items-center space-x-1 bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
+                          >
+                            <Eye className="w-4 h-4" />
+                            <span>Preview</span>
+                          </motion.button>
+                        )}
+
+                        {/* Process button for pending jobs */}
                         {job.status === 'pending' && (
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -361,6 +435,20 @@ function TranslationJobs({ token, jobs, setJobs, refreshTrigger }) {
                           </motion.button>
                         )}
 
+                        {/* Re-run button for failed or completed jobs */}
+                        {(job.status === 'failed' || job.status === 'completed') && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleRerun(job.id)}
+                            className="flex items-center space-x-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            <span>Re-run</span>
+                          </motion.button>
+                        )}
+
+                        {/* Download button for completed jobs */}
                         {job.status === 'completed' && (
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -373,6 +461,7 @@ function TranslationJobs({ token, jobs, setJobs, refreshTrigger }) {
                           </motion.button>
                         )}
 
+                        {/* Delete button - always show */}
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
@@ -391,6 +480,117 @@ function TranslationJobs({ token, jobs, setJobs, refreshTrigger }) {
           </div>
         )}
       </motion.div>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {showPreview && previewData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPreview(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-primary-500 to-purple-500 text-white p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">Translation Preview</h3>
+                    <div className="flex items-center space-x-4 text-sm">
+                      <span className="bg-white/20 px-2 py-1 rounded">
+                        Job #{previewData.job_id}
+                      </span>
+                      <span className="bg-white/20 px-2 py-1 rounded">
+                        {previewData.document_name}
+                      </span>
+                      <span className="bg-white/20 px-2 py-1 rounded">
+                        {languages[previewData.source_language]} → {languages[previewData.target_language]}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowPreview(false)}
+                    className="text-white/70 hover:text-white text-2xl font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex h-[70vh]">
+                {/* Original Content */}
+                <div className="flex-1 border-r border-gray-200">
+                  <div className="bg-gray-50 p-4 border-b">
+                    <h4 className="font-semibold text-gray-900 flex items-center">
+                      <Globe className="w-4 h-4 mr-2" />
+                      Original ({languages[previewData.source_language]})
+                    </h4>
+                  </div>
+                  <div className="p-6 overflow-y-auto h-full">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed">
+                      {previewData.original_content}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Translated Content */}
+                <div className="flex-1">
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b">
+                    <h4 className="font-semibold text-gray-900 flex items-center">
+                      <Globe className="w-4 h-4 mr-2" />
+                      Translation ({languages[previewData.target_language]})
+                    </h4>
+                  </div>
+                  <div className="p-6 overflow-y-auto h-full">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed">
+                      {previewData.translated_content}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-gray-50 p-4 flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  <div className="flex items-center space-x-4">
+                    <span>Created: {new Date(previewData.created_at).toLocaleString()}</span>
+                    {previewData.completed_at && (
+                      <span>Completed: {new Date(previewData.completed_at).toLocaleString()}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleDownload(previewData.job_id)}
+                    className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowPreview(false)}
+                    className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  >
+                    Close
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

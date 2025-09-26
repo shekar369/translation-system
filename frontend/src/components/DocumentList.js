@@ -14,15 +14,38 @@ import {
   Grid3X3,
   List,
   CheckCircle,
-  Clock
+  Clock,
+  Languages,
+  Globe,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const languages = {
+  'en': 'English',
+  'es': 'Spanish',
+  'fr': 'French',
+  'de': 'German',
+  'it': 'Italian',
+  'pt': 'Portuguese',
+  'ru': 'Russian',
+  'ja': 'Japanese',
+  'ko': 'Korean',
+  'zh': 'Chinese',
+  'ar': 'Arabic',
+  'hi': 'Hindi'
+};
 
 function DocumentList({ token, documents, setDocuments, refreshTrigger }) {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [showTranslateModal, setShowTranslateModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [sourceLanguage, setSourceLanguage] = useState('en');
+  const [targetLanguage, setTargetLanguage] = useState('es');
+  const [translating, setTranslating] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -99,6 +122,52 @@ function DocumentList({ token, documents, setDocuments, refreshTrigger }) {
     } catch (error) {
       console.error('Error deleting document:', error);
       toast.error('Failed to delete document');
+    }
+  };
+
+  const handleTranslateClick = (document) => {
+    setSelectedDocument(document);
+    setShowTranslateModal(true);
+  };
+
+  const handleTranslate = async () => {
+    if (!selectedDocument || sourceLanguage === targetLanguage) {
+      toast.error('Please select different source and target languages');
+      return;
+    }
+
+    setTranslating(true);
+    try {
+      const response = await fetch('/api/translate/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          document_id: selectedDocument.id,
+          source_language: sourceLanguage,
+          target_language: targetLanguage
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(`Translation job created successfully! Job ID: ${result.job_id}`);
+        setShowTranslateModal(false);
+        setSelectedDocument(null);
+
+        // Optionally navigate to jobs page or refresh
+        // You can add navigation logic here if needed
+      } else {
+        const errorData = await response.json();
+        toast.error(`Translation failed: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast.error('Failed to create translation job');
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -300,15 +369,26 @@ function DocumentList({ token, documents, setDocuments, refreshTrigger }) {
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleDelete(doc.id)}
-                                className="flex items-center space-x-1 text-red-600 hover:text-red-800 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span className="text-sm font-medium">Delete</span>
-                              </motion.button>
+                              <div className="flex items-center space-x-3">
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleTranslateClick(doc)}
+                                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors"
+                                >
+                                  <Languages className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Translate</span>
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleDelete(doc.id)}
+                                  className="flex items-center space-x-1 text-red-600 hover:text-red-800 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Delete</span>
+                                </motion.button>
+                              </div>
                             </td>
                           </motion.tr>
                         );
@@ -373,14 +453,26 @@ function DocumentList({ token, documents, setDocuments, refreshTrigger }) {
                               {doc.processed ? 'Processed' : 'Pending'}
                             </span>
 
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => handleDelete(doc.id)}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </motion.button>
+                            <div className="flex items-center space-x-2">
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleTranslateClick(doc)}
+                                className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Translate document"
+                              >
+                                <Languages className="w-4 h-4" />
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleDelete(doc.id)}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete document"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </motion.button>
+                            </div>
                           </div>
                         </motion.div>
                       );
@@ -392,6 +484,129 @@ function DocumentList({ token, documents, setDocuments, refreshTrigger }) {
           </>
         )}
       </motion.div>
+
+      {/* Translation Modal */}
+      <AnimatePresence>
+        {showTranslateModal && selectedDocument && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowTranslateModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Translate Document</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {selectedDocument.filename}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowTranslateModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Language Selection */}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Source Language
+                  </label>
+                  <select
+                    value={sourceLanguage}
+                    onChange={(e) => setSourceLanguage(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    {Object.entries(languages).map(([code, name]) => (
+                      <option key={code} value={code}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-center py-2">
+                  <Globe className="w-5 h-5 text-gray-400" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target Language
+                  </label>
+                  <select
+                    value={targetLanguage}
+                    onChange={(e) => setTargetLanguage(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    {Object.entries(languages).map(([code, name]) => (
+                      <option key={code} value={code}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Warning for same language */}
+              {sourceLanguage === targetLanguage && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-yellow-800">
+                    Please select different source and target languages.
+                  </p>
+                </div>
+              )}
+
+              {/* Modal Actions */}
+              <div className="flex items-center space-x-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleTranslate}
+                  disabled={translating || sourceLanguage === targetLanguage}
+                  className="flex-1 bg-primary-500 hover:bg-primary-600 text-white px-4 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {translating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Creating Translation...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Languages className="w-4 h-4" />
+                      <span>Start Translation</span>
+                    </>
+                  )}
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowTranslateModal(false)}
+                  disabled={translating}
+                  className="px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+
+              {/* Info */}
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-700">
+                  💡 Your translation job will be created and you can monitor its progress in the Translation Jobs section.
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
